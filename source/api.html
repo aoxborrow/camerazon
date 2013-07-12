@@ -7,13 +7,12 @@
 		}
 		a {
 			font-weight: bold;
-			font-size: 1.4em;
 			color: blue;
 		}
 		a:hover {
 			color: purple;
 		}
-		.get, .post, .type {
+		.get, .post, .put, .type {
 			display: inline-block;
 			padding: 3px 5px;
 			background-color: green;
@@ -21,6 +20,9 @@
 			font-size: 1.2em;
 			margin-right: 8px;
 			font-weight: bold;
+		}
+		.put {
+			background-color: blue;
 		}
 		.post  {
 			background-color: orange;
@@ -34,13 +36,24 @@
 	<body>
 		<h1>Camazon API</h1>
 		<h3>The 2nd Best Place to Buy Cameras Online!</h3>
-		<hr><br/><br/>
+		<hr><br/>
 
-		<p><b class="get">GET</b><a href="/api/products.json">/api/</a> - this page, the API index. <b class="type">text/html</b></p>
-		<p><b class="get">GET</b><a href="/api/products.json">/api/products.json</a> - list all products. <b class="type">application/json</b></p>
-		<p><b class="get">GET</b><a href="/api/products/147064802.json">/api/products/147064802.json</a> - single product details with variants. <b class="type">application/json</b></p>
-		<p><b class="get">GET</b><a href="/api/products/147064802/variants.json">/api/products/147064802/variants.json</a> - only list variants for a product. <b class="type">application/json</b></p>
-		<p><b class="post">POST</b><a href="/api/products.json">/api/products.json</a> - sync products with Shopify and return updated list. <b class="type">application/json</b></p>
+		<h3>General</h3>
+		<p><b class="get">GET</b><a href="/api/products.json">/api/</a> this page, the API index</p>
+
+		<br/>
+		<h3>Products</h3>
+		<p><b class="get">GET</b><a href="/api/products.json">/api/products.json</a> - list all products</p>
+		<p><b class="get">GET</b><a href="/api/products/147064802.json">/api/products/147064802.json</a> - single product details with variants</p>
+		<p><b class="get">GET</b><a href="/api/products/147064802/variants.json">/api/products/147064802/variants.json</a> - list just the variants for a product</p>
+		<p><b class="post">POST</b><a href="/api/products.json">/api/products.json</a> - sync products with Shopify and return updated list</p>
+		
+		<br/>
+		<h3>Variants</h3>
+		<p><b class="get">GET</b><a href="/api/variants/335858738.json">/api/variants/335858738.json</a> - single variant details</p>
+		
+		<p><b class="put">PUT</b><a href="/api/variants/335858738.json">/api/variants/335858738.json</a> - update a variant, e.g. {"inventory_quantity":"23","updated_at":"2013-07-12T03:19:10-07:00"}</p>
+	
 
 		<br/><br/><hr>
 		<p>Source: <a style="font-size: 1em;" href="https://github.com/paste/camazon">https://github.com/paste/camazon</a></p>

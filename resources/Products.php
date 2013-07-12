@@ -13,37 +13,9 @@ use Tonic\Resource,
  */
 class Products extends Resource {
 	
-	// our local DB fields
-	public static $products_fields = array(
-		'id', 
-		'product_id', 
-		'created_at', 
-		'updated_at', 
-		'product_type', 
-		'vendor', 
-		'handle', 
-		'title', 
-		'body_html', 
-	);
+	// local DB fields
+	public static $products_fields = array('product_id', 'created_at', 'updated_at', 'product_type', 'vendor', 'handle', 'title', 'body_html');
 	
-	// our local DB fields
-	public static $variants_fields = array(
-		'id',
-		'product_id',
-		'variant_id',
-		'created_at',
-		'updated_at',
-		'position',
-		'title',
-		'sku',
-		'option1',
-		'option2',
-		'option3',
-		'inventory_quantity',
-		'price',
-		'grams',
-	);
-
 	/**
 	 * @method GET
 	 * @provides application/json
@@ -60,17 +32,19 @@ class Products extends Resource {
 	
 	
 	/**
+	 * Post a new product and sync DB with Shopify
 	 * @method POST
 	 * @provides application/json
 	 */
-	public function sync() {
-
+	public function post() {
+		
+		// accepts JSON 
+		$data = json_decode($this->request->data, TRUE);
+		
 		// shopify API client
 		$shopify = $this->container['shopify'];
 
 		try {
-
-			// $this->request->data
 
 			// api request params
 			$request_params = array();
@@ -142,10 +116,9 @@ class Product extends Resource {
 
 /**
  * Variants resource
- * @uri /variants/([0-9]+)
  * @uri /products/([0-9]+)/variants
  */
-class Variants extends Resource {
+class ProductVariants extends Resource {
 	
 	/**
 	 * @method GET
@@ -166,4 +139,5 @@ class Variants extends Resource {
 	}
 
 }
+
 
