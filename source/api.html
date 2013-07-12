@@ -1,0 +1,46 @@
+<!doctype html>
+	<title>Camazon API</title>
+	<style type="text/css">
+		body {
+			font-family: Monaco, monospace, sans-serif; padding: 40px 80px;
+			font-size: 14px;
+		}
+		a {
+			font-weight: bold;
+			font-size: 1.4em;
+			color: blue;
+		}
+		a:hover {
+			color: purple;
+		}
+		.get, .post, .type {
+			display: inline-block;
+			padding: 3px 5px;
+			background-color: green;
+			color: white;
+			font-size: 1.2em;
+			margin-right: 8px;
+			font-weight: bold;
+		}
+		.post  {
+			background-color: orange;
+		}
+		.type {
+			font-size: .8em;
+			background-color: #aaa;
+			margin-right: 0;
+		}
+	</style>
+	<body>
+		<h1>Camazon API</h1>
+		<h3>The 2nd Best Place to Buy Cameras Online!</h3>
+		<hr><br/><br/>
+
+		<p><b class="get">GET</b><a href="/api/products.json">/api/</a> <b class="type">text/html</b> - this page, the API index.</p>
+		<p><b class="get">GET</b><a href="/api/products.json">/api/products.json</a> <b class="type">application/json</b> - list all products.</p>
+		<p><b class="post">POST</b><a href="/api/products.json">/api/products.json</a> <b class="type">application/json</b> - sync products with Shopify and return updated list.</p>
+
+		<br/><br/><hr>
+		<p>Source: <a style="font-size: 1em;" href="https://github.com/paste/camazon">https://github.com/paste/camazon</a></p>
+	</body>
+</html>

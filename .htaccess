@@ -13,15 +13,18 @@ RewriteBase /
 	Deny From All
 </Files>
 
+# redirect root request to /api/
+RewriteRule ^(|api)$ /api/ [R=301,L]
+
 # Protect application and system files from being viewed
-RewriteRule ^(?:vendor|templates|cache)\b.* index.php/$0 [L]
+RewriteRule ^(?:vendor|source|templates|cache)\b.* index.php [L,QSA]
 
 # Allow any files or directories that exist to be displayed directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Rewrite all other URLs to index.php/URL
-# RewriteRule .* index.php/$0 [PT]
+# Rewrite all other URLs to index.php
+RewriteRule .* index.php [L,QSA]
 
 # use utf-8 encoding for anything served text/plain or text/html
 AddDefaultCharset utf-8
