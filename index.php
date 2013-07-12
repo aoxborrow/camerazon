@@ -17,7 +17,7 @@ define('SHOPIFY_SECRET', 'd4c6f1287d7d0da2addba3421a00871c');
 define('MYSQL_HOST', '127.0.0.1');
 define('MYSQL_USER', 'root');
 define('MYSQL_PASS', '1234');
-define('MYSQL_DB', 'camazon');
+define('MYSQL_DB', 'camerazon');
 
 // cheap hack to make Tonic\Application work more like a singleton for dependency injection
 class App extends Tonic\Application {
@@ -28,7 +28,7 @@ class App extends Tonic\Application {
 // https://github.com/peej/tonic
 $tonic_config = array(
 	'load' => array('resources/*.php'), // load resource classes for Tonic
-	'mount' => array('Camazon' => '/api'), // mount namespaced resources at /api
+	'mount' => array('Camerazon' => '/api'), // mount namespaced resources at /api
 	// 'cache' => new Tonic\MetadataCacheFile('/tmp/tonic.cache'), // use the metadata cache
 );
 

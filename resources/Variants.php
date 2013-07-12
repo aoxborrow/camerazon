@@ -1,6 +1,6 @@
 <?php
 
-namespace Camazon;
+namespace Camerazon;
 
 use Tonic\Resource,
     Tonic\Response,
@@ -218,7 +218,7 @@ class Variants extends Resource {
 		if (empty(self::$_variants)) {
 			
 			// retrieve full variant details
-			$query = \App::$container['db']->query("SELECT * FROM products_variants ORDER BY variant_id DESC");
+			$query = \App::$container['db']->query("SELECT * FROM products_variants");
 			$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
 
 			foreach ($variants as &$variant) {

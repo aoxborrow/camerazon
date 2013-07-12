@@ -6,7 +6,7 @@
 # http://code.google.com/p/sequel-pro/
 #
 # Host: 127.0.0.1 (MySQL 5.6.10)
-# Database: camazon
+# Database: \App::$container
 # Generation Time: 2013-07-12 05:32:21 +0000
 # ************************************************************
 
