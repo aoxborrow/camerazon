@@ -3,15 +3,46 @@
 namespace Camazon;
 
 use Tonic\Resource,
-Tonic\Response,
-Tonic\ConditionException,
-sandeepshetty\shopify_api;
+    Tonic\Response,
+    Tonic\ConditionException,
+    sandeepshetty\shopify_api;
 
 /**
  * Products resource
  * @uri /products
  */
 class Products extends Resource {
+	
+	// our local DB fields
+	public static $products_fields = array(
+		'id', 
+		'product_id', 
+		'created_at', 
+		'updated_at', 
+		'product_type', 
+		'vendor', 
+		'handle', 
+		'title', 
+		'body_html', 
+	);
+	
+	// our local DB fields
+	public static $variants_fields = array(
+		'id',
+		'product_id',
+		'variant_id',
+		'created_at',
+		'updated_at',
+		'position',
+		'title',
+		'sku',
+		'option1',
+		'option2',
+		'option3',
+		'inventory_quantity',
+		'price',
+		'grams',
+	);
 
 	/**
 	 * @method GET
@@ -19,17 +50,11 @@ class Products extends Resource {
 	 */
 	public function get() {
 		
-		// shared DB connection
-		$db = $this->container['db'];
-
 		// list all products
-		$query = $db->query("SELECT * FROM products");
-		$products = $query->fetchAll(\PDO::FETCH_OBJ);
+		$query = $this->container['db']->query("SELECT * FROM products");
+		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
 
-		/*
-		foreach ($query->fetchAll(\PDO::FETCH_OBJ) as $product) {
-			echo Pre::r($product);
-		}*/
+		// JSON response
 		return new Response(Response::OK, json_encode($products), array('content-type' => 'application/json'));
 	}
 	
@@ -75,6 +100,70 @@ class Products extends Resource {
 		// return product list
 		return new Response(Response::CREATED, json_encode($response), array('content-type' => 'application/json'));
 	}
+}
 
+
+/**
+ * Single Product resource
+ * @uri /products/([0-9]+)
+ */
+class Product extends Resource {
+	
+	/**
+	 * @method GET
+	 * @provides application/json
+	 */
+	public function get($product_id = NULL) {
+		
+		// no product id specified
+		if (empty($product_id))
+			return new Response(404, 'You must specify a product ID.');
+
+		// get product data
+		$query = $this->container['db']->query("SELECT * FROM products WHERE product_id = '$product_id' LIMIT 1");
+		$product = $query->fetch(\PDO::FETCH_ASSOC);
+
+		// product not found
+		if (empty($product))
+			return new Response(404, 'Product ID not found.');
+		
+		// get variants for a product, order by last updated
+		$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
+		$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
+		
+		// return in same format as Shopify API
+		$product['variants'] = $variants;
+
+		// JSON response
+		return new Response(Response::OK, json_encode($product), array('content-type' => 'application/json'));
+	}
+}
+
+
+/**
+ * Variants resource
+ * @uri /variants/([0-9]+)
+ * @uri /products/([0-9]+)/variants
+ */
+class Variants extends Resource {
+	
+	/**
+	 * @method GET
+	 * @provides application/json
+	 */
+	public function get($product_id = NULL) {
+		
+		// no product id specified
+		if (empty($product_id))
+			return new Response(404, 'You must specify a product ID.');
+		
+		// get variants for a product, order by last updated
+		$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
+		$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
+
+		// JSON response
+		return new Response(Response::OK, json_encode($variants), array('content-type' => 'application/json'));
+	}
 
 }
+

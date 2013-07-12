@@ -24,7 +24,7 @@ define('MYSQL_DB', 'camazon');
 $tonic_config = array(
 	'load' => array('resources/*.php'), // load resource classes for Tonic
 	'mount' => array('Camazon' => '/api'), // mount namespaced resources at /api
-	'cache' => new Tonic\MetadataCacheFile('/tmp/tonic.cache'), // use the metadata cache
+	// 'cache' => new Tonic\MetadataCacheFile('/tmp/tonic.cache'), // use the metadata cache
 );
 
 // init Tonic
