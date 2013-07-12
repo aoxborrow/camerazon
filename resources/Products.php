@@ -20,21 +20,24 @@ class Products extends Resource {
 	 * @method GET
 	 * @provides application/json
 	 */
+	/*
 	public function get() {
 		
 		// list all products
-		$query = $this->container['db']->query("SELECT * FROM products");
+		$query = \App::$container['db']->query("SELECT * FROM products");
 		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
 
 		// JSON response
 		return new Response(Response::OK, json_encode($products), array('content-type' => 'application/json'));
 	}
+	*/
 	
 	
 	/**
 	 * Post a new product and sync DB with Shopify
+	 * @method GET
 	 * @method POST
-	 * @provides application/json
+	 * @ provides application/json
 	 */
 	public function post() {
 		
@@ -44,6 +47,7 @@ class Products extends Resource {
 		// TODO: add product if supplied
 		
 		// sync database and Shopify, returns updated list of products
+		return $this->_sync();
 		$products = $this->_sync();
 		
 		// return product list
@@ -51,10 +55,12 @@ class Products extends Resource {
 	}
 	
 	// sync DB and Shopify
-	private function _sync() {
+	public function _sync() {
+		
+		$response = '';
 		
 		// get current products from DB
-		$query = $this->container['db']->query("SELECT * FROM products");
+		$query = \App::$container['db']->query("SELECT * FROM products");
 		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
 		
 		// arrange them by product_id, get variants
@@ -62,7 +68,7 @@ class Products extends Resource {
 		foreach ($products as $product) {
 			
 			// get product variants, order by variant ID
-			$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '".$product['product_id']."' ORDER BY variant_id ASC");
+			$query = \App::$container['db']->query("SELECT * FROM products_variants WHERE product_id = '".$product['product_id']."' ORDER BY variant_id ASC");
 			$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
 			
 			// arrange by variant_id
@@ -78,7 +84,7 @@ class Products extends Resource {
 		try {
 			
 			// shopify API client
-			$shopify = $this->container['shopify'];
+			$shopify = \App::$container['shopify'];
 
 			// get shopify products
 			$products = $shopify('GET', '/admin/products.json', array(), $response_headers);
@@ -111,6 +117,7 @@ class Products extends Resource {
 		// compare to DB products
 		$inserts = array(); // new products to add
 		$updates = array(); // products to update
+		$variants = array(); // variants to check
 		foreach ($products as &$product) {
 			
 			// shopify id, map to our DB columns
@@ -129,40 +136,46 @@ class Products extends Resource {
 						$updates[$pid] = &$db_products[$pid];
 						break;
 					}
-				}				
+				}
+				
 			// we don't have this product, create it
 			} else {
 				
 				// add to local DB
 				$inserts[$pid] = &$product;
 			}
+			
+			// handle updating variants
+			if (! empty($product['variants']) AND is_array($product['variants']))
+				$variants[$pid] = $product['variants'];
 		}
 		
 		// update products
 		foreach ($updates as $pid => &$product)
-			$this->_update($product);
+			self::_update($product);
 		
 		// add products
 		foreach ($inserts as $pid => &$product)
-			$this->_update($product, TRUE);
+			self::_update($product, TRUE);
 		
-		// $response = \Paste\Pre::r($mismatches, 'MISMATCHES').'<br><br>';
-		// $response .= \Paste\Pre::r(array_keys($updates), 'UPDATES').'<br><br>';
-		// $response .= \Paste\Pre::r(array_keys($inserts), 'INSERTS').'<br><br>';
+		// sync variants
+		$response .= Variants::_sync_variants($variants);
+		
+		$response .= \Paste\Pre::r(array_keys($updates), 'UPDATES').'<br><br>';
+		$response .= \Paste\Pre::r(array_keys($inserts), 'INSERTS').'<br><br>';
 		
 		// get updated products from DB
-		$query = $this->container['db']->query("SELECT * FROM products");
+		$query = \App::$container['db']->query("SELECT * FROM products");
 		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
-		// $response .= \Paste\Pre::r($products, 'PRODUCTS');
 
 		// return product list
-		// return new Response(Response::OK, $response, array('content-type' => 'text/html'));
-		return $products;
+		return new Response(Response::OK, $response, array('content-type' => 'text/html'));
+		// return $products;
 
 	}
 	
-	// update a product and its variants and images in the DB
-	private function _update(&$product, $insert = FALSE) {
+	// update or insert a product in the DB
+	public static function _update(&$product, $insert = FALSE) {
 		
 		// insert product
 		if ($insert) {
@@ -183,12 +196,12 @@ class Products extends Resource {
 			foreach($product as $key => $val)
 				if (in_array($key, self::$products_fields))
 					$set .= "{$key} = :{$key}, ";
-			$query = "UPDATE products SET ".substr($set, 0, -2)." WHERE product_id = '".$product['id']."' LIMIT 1";
+			$query = "UPDATE products SET ".substr($set, 0, -2)." WHERE product_id = '".$product['product_id']."' LIMIT 1";
 			
 		}
 
 		// prepare update query
-		$query = $this->container['db']->prepare($query);
+		$query = \App::$container['db']->prepare($query);
 		foreach($product as $key => $val) {
 			if (in_array($key, self::$products_fields)) {
 				// format dates
@@ -199,7 +212,7 @@ class Products extends Resource {
 			}
 		}
 		
-		// execute query
+		// execute query and update/insert product
 		$query->execute();
 		
 	}
@@ -223,7 +236,7 @@ class Product extends Resource {
 			return new Response(404, 'You must specify a product ID.');
 
 		// get product data
-		$query = $this->container['db']->query("SELECT * FROM products WHERE product_id = '$product_id' LIMIT 1");
+		$query = \App::$container['db']->query("SELECT * FROM products WHERE product_id = '$product_id' LIMIT 1");
 		$product = $query->fetch(\PDO::FETCH_ASSOC);
 
 		// product not found
@@ -231,7 +244,7 @@ class Product extends Resource {
 			return new Response(404, 'Product ID not found.');
 		
 		// get variants for a product, order by last updated
-		$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
+		$query = \App::$container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
 		$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
 		
 		// return in same format as Shopify API
@@ -260,7 +273,7 @@ class ProductVariants extends Resource {
 			return new Response(404, 'You must specify a product ID.');
 		
 		// get variants for a product, order by last updated
-		$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
+		$query = \App::$container['db']->query("SELECT * FROM products_variants WHERE product_id = '$product_id' ORDER BY updated_at");
 		$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
 
 		// JSON response
@@ -268,5 +281,3 @@ class ProductVariants extends Resource {
 	}
 
 }
-
-

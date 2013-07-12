@@ -19,6 +19,11 @@ define('MYSQL_USER', 'root');
 define('MYSQL_PASS', '1234');
 define('MYSQL_DB', 'camazon');
 
+// cheap hack to make Tonic\Application work more like a singleton for dependency injection
+class App extends Tonic\Application {
+	public static $container; // Pimple DI
+}
+
 // configure Tonic framework
 // https://github.com/peej/tonic
 $tonic_config = array(
@@ -28,7 +33,7 @@ $tonic_config = array(
 );
 
 // init Tonic
-$tonic = new Tonic\Application($tonic_config);
+$tonic = new App($tonic_config);
 $request = new Tonic\Request(array('baseUri' => '/api'));
 
 // for API Index, just show a simple overview
@@ -42,14 +47,14 @@ try {
 	$resource = $tonic->getResource($request);
 	
 	// set up a DI container for DB connection & Shopify API
-	$resource->container = new Pimple();
-	$resource->container['db'] = $resource->container->share(function($c) {
+	\App::$container = new Pimple();
+	\App::$container['db'] = \App::$container->share(function($c) {
 		// PDO connector
 		return new \PDO("mysql:host=".MYSQL_HOST.";dbname=".MYSQL_DB, MYSQL_USER, MYSQL_PASS);
 	});
 
 	// add Shopify API service
-	$resource->container['shopify'] = $resource->container->share(function($c) {
+	\App::$container['shopify'] = \App::$container->share(function($c) {
 		// Shopify client
 		return sandeepshetty\shopify_api\client(SHOPIFY_DOMAIN, NULL, SHOPIFY_API_KEY, SHOPIFY_PASSWORD, TRUE);
 	});
