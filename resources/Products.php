@@ -41,25 +41,57 @@ class Products extends Resource {
 		// accepts JSON 
 		$data = json_decode($this->request->data, TRUE);
 		
-		// shopify API client
-		$shopify = $this->container['shopify'];
+		// TODO: add product if supplied
+		
+		// sync database and Shopify, returns updated list of products
+		$products = $this->_sync();
+		
+		// return product list
+		return new Response(Response::CREATED, json_encode($products), array('content-type' => 'application/json'));
+	}
+	
+	// sync DB and Shopify
+	private function _sync() {
+		
+		// get current products from DB
+		$query = $this->container['db']->query("SELECT * FROM products");
+		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
+		
+		// arrange them by product_id, get variants
+		$db_products = array();
+		foreach ($products as $product) {
+			
+			// get product variants, order by variant ID
+			$query = $this->container['db']->query("SELECT * FROM products_variants WHERE product_id = '".$product['product_id']."' ORDER BY variant_id ASC");
+			$variants = $query->fetchAll(\PDO::FETCH_ASSOC);
+			
+			// arrange by variant_id
+			$product['variants'] = array();
+			foreach ($variants as $variant)
+				$product['variants'][$variant['variant_id']] = $variant;
+			
+			// everything goes in db_products
+			$db_products[$product['product_id']] = $product;
+		}
+		
 
 		try {
-
-			// api request params
-			$request_params = array();
-
-			// list products
-			$products = $shopify('GET', '/admin/products.json', $request_params, $response_headers);
 			
-			// UPDATE DB, RETURN NEW PRODUCTS
+			// shopify API client
+			$shopify = $this->container['shopify'];
+
+			// get shopify products
+			$products = $shopify('GET', '/admin/products.json', array(), $response_headers);
 			
-			$response = $products;
-	
 			// API call limit helpers
 			// echo shopify_api\calls_made($response_headers); // 2
 			// echo shopify_api\calls_left($response_headers); // 298
 			// echo shopify_api\call_limit($response_headers); // 300
+			
+			// no products returned -- "not modified" response
+			if (empty($products))
+				$response = 'Error syncing products.';
+			
 
 		} catch (shopify_api\Exception $e) {
 	
@@ -70,9 +102,106 @@ class Products extends Resource {
 			$response = $e->getMessage();
 	
 		}
+
+		// error, early return
+		if (! empty($response))
+			return new Response(304, $response);
+
+
+		// compare to DB products
+		$inserts = array(); // new products to add
+		$updates = array(); // products to update
+		foreach ($products as &$product) {
+			
+			// shopify id, map to our DB columns
+			$pid = $product['id'];
+			$product['product_id'] = $pid;
+			
+			// we have this product, compare fields
+			if (isset($db_products[$pid])) {
+				foreach (self::$products_fields as $field) {
+					
+					// date format to unix timestamp
+					$shopify_value = ($field == 'created_at' OR $field == 'updated_at') ? strtotime($product[$field]) : $product[$field];
+					
+					// fields don't match
+					if ($shopify_value != $db_products[$pid][$field]) {
+						$updates[$pid] = &$db_products[$pid];
+						break;
+					}
+				}				
+			// we don't have this product, create it
+			} else {
+				
+				// add to local DB
+				$inserts[$pid] = &$product;
+			}
+		}
 		
+		// update products
+		foreach ($updates as $pid => &$product)
+			$this->_update($product);
+		
+		// add products
+		foreach ($inserts as $pid => &$product)
+			$this->_update($product, TRUE);
+		
+		// $response = \Paste\Pre::r($mismatches, 'MISMATCHES').'<br><br>';
+		// $response .= \Paste\Pre::r(array_keys($updates), 'UPDATES').'<br><br>';
+		// $response .= \Paste\Pre::r(array_keys($inserts), 'INSERTS').'<br><br>';
+		
+		// get updated products from DB
+		$query = $this->container['db']->query("SELECT * FROM products");
+		$products = $query->fetchAll(\PDO::FETCH_ASSOC);
+		// $response .= \Paste\Pre::r($products, 'PRODUCTS');
+
 		// return product list
-		return new Response(Response::CREATED, json_encode($response), array('content-type' => 'application/json'));
+		// return new Response(Response::OK, $response, array('content-type' => 'text/html'));
+		return $products;
+
+	}
+	
+	// update a product and its variants and images in the DB
+	private function _update(&$product, $insert = FALSE) {
+		
+		// insert product
+		if ($insert) {
+			$keys = '';
+			$values = '';
+			foreach($product as $key => $val) {
+				if (in_array($key, self::$products_fields)) {
+					$keys .= "{$key}, ";
+					$values .= ":{$key}, ";
+				}
+			}
+			$query = "INSERT INTO products (".substr($keys, 0, -2).") VALUES (".substr($values, 0, -2).")";
+
+		} else {
+
+			// update product
+			$set = '';
+			foreach($product as $key => $val)
+				if (in_array($key, self::$products_fields))
+					$set .= "{$key} = :{$key}, ";
+			$query = "UPDATE products SET ".substr($set, 0, -2)." WHERE product_id = '".$product['id']."' LIMIT 1";
+			
+		}
+
+		// prepare update query
+		$query = $this->container['db']->prepare($query);
+		foreach($product as $key => $val) {
+			if (in_array($key, self::$products_fields)) {
+				// format dates
+				if ($key == 'created_at' OR $key == 'updated_at')
+					$val = strtotime($val);
+				// bind value
+				$query->bindValue(":{$key}", $val);
+			}
+		}
+		
+		// execute query
+		$query->execute();
+		
 	}
 }
 
