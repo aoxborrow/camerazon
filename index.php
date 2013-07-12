@@ -56,7 +56,7 @@ try {
 	// add Shopify API service
 	\App::$container['shopify'] = \App::$container->share(function($c) {
 		// Shopify client
-		return sandeepshetty\shopify_api\client(SHOPIFY_DOMAIN, NULL, SHOPIFY_API_KEY, SHOPIFY_PASSWORD, TRUE);
+		return sandeepshetty\shopify_api\client(SHOPIFY_DOMAIN, SHOPIFY_PASSWORD, SHOPIFY_API_KEY, SHOPIFY_PASSWORD, TRUE);
 	});
 	
 	// generate response from resource
